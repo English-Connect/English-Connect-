@@ -28,36 +28,58 @@ db.connect((err) => {
 
 // Registrar nuevo usuario
 app.post('/api/usuarios/registro', (req, res) => {
-  const { nombres, apellido_paterno, apellido_materno, email, contraseña, nivel_actual, nivel_deseado, rol, edad, phone_number } = req.body;
-  
-  const sql = `INSERT INTO usuarios (nombres, apellido_paterno, apellido_materno, email, contraseña, nivel_actual, nivel_deseado, rol, edad, phone_number) 
+  const { nombres, apellido_paterno, apellido_materno, email, contrasena, nivel_actual, nivel_deseado, rol, edad, phone_number } = req.body;
+
+  // Validar campos requeridos
+  if (!nombres || !apellido_paterno || !email || !contrasena || !rol) {
+    return res.status(400).json({ error: 'Faltan campos requeridos: nombres, apellido_paterno, email, contrasena y rol son obligatorios' });
+  }
+
+  const sql = `INSERT INTO usuarios (nombres, apellido_paterno, apellido_materno, email, contrasena, nivel_actual, nivel_deseado, rol, edad, phone_number) 
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-  
-  db.execute(sql, [nombres, apellido_paterno, apellido_materno, email, contraseña, nivel_actual, nivel_deseado, rol, edad, phone_number], 
+
+  // Convertir undefined a null para campos opcionales
+  db.execute(sql, [
+    nombres, 
+    apellido_paterno, 
+    apellido_materno || null, 
+    email, 
+    contrasena, 
+    nivel_actual || 'A1', 
+    nivel_deseado || 'C2', 
+    rol, 
+    edad || null, 
+    phone_number || null
+  ],
     (err, result) => {
       if (err) {
         return res.status(400).json({ error: err.message });
       }
       res.json({ message: 'Usuario registrado exitosamente', usuario_id: result.insertId });
-  });
+    });
 });
 
 // Login de usuario
 app.post('/api/usuarios/login', (req, res) => {
-  const { email, contraseña } = req.body;
-  
-  const sql = 'SELECT * FROM usuarios WHERE email = ? AND contraseña = ?';
-  db.execute(sql, [email, contraseña], (err, results) => {
+  const { email, contrasena } = req.body;
+
+  // Validar que lleguen los datos
+  if (!email || !contrasena) {
+    return res.status(400).json({ error: 'Email y contraseña son requeridos' });
+  }
+
+  const sql = 'SELECT * FROM usuarios WHERE email = ? AND contrasena = ?';
+  db.execute(sql, [email, contrasena], (err, results) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
     if (results.length === 0) {
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
-    
+
     const usuario = { ...results[0] };
-    delete usuario.contraseña; // No enviar la contraseña
-    
+    delete usuario.contrasena; // No enviar la contrasena
+
     res.json({ message: 'Login exitoso', usuario });
   });
 });
@@ -78,10 +100,10 @@ app.get('/api/usuarios', (req, res) => {
 // Crear nueva clase
 app.post('/api/clases', (req, res) => {
   const { alumno_id, profesor_id, fecha, hora_inicio, hora_fin } = req.body;
-  
+
   const sql = `INSERT INTO clases (alumno_id, profesor_id, fecha, hora_inicio, hora_fin) 
                VALUES (?, ?, ?, ?, ?)`;
-  
+
   db.execute(sql, [alumno_id, profesor_id, fecha, hora_inicio, hora_fin], (err, result) => {
     if (err) {
       return res.status(400).json({ error: err.message });
@@ -93,7 +115,7 @@ app.post('/api/clases', (req, res) => {
 // Obtener clases de un usuario
 app.get('/api/clases/usuario/:usuario_id', (req, res) => {
   const { usuario_id } = req.params;
-  
+
   const sql = `SELECT c.*, 
                u_prof.nombres as profesor_nombre, 
                u_alum.nombres as alumno_nombre
@@ -101,7 +123,7 @@ app.get('/api/clases/usuario/:usuario_id', (req, res) => {
                JOIN usuarios u_prof ON c.profesor_id = u_prof.usuario_id
                JOIN usuarios u_alum ON c.alumno_id = u_alum.usuario_id
                WHERE c.alumno_id = ? OR c.profesor_id = ?`;
-  
+
   db.execute(sql, [usuario_id, usuario_id], (err, results) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -115,10 +137,10 @@ app.get('/api/clases/usuario/:usuario_id', (req, res) => {
 // Enviar solicitud de conexión
 app.post('/api/conexiones', (req, res) => {
   const { solicitante_id, receptor_id, nivel_solicitado } = req.body;
-  
+
   const sql = `INSERT INTO conexiones (solicitante_id, receptor_id, nivel_solicitado) 
                VALUES (?, ?, ?)`;
-  
+
   db.execute(sql, [solicitante_id, receptor_id, nivel_solicitado], (err, result) => {
     if (err) {
       return res.status(400).json({ error: err.message });
@@ -130,7 +152,7 @@ app.post('/api/conexiones', (req, res) => {
 // Obtener conexiones de un usuario
 app.get('/api/conexiones/usuario/:usuario_id', (req, res) => {
   const { usuario_id } = req.params;
-  
+
   const sql = `SELECT c.*, 
                u_sol.nombres as solicitante_nombre,
                u_rec.nombres as receptor_nombre
@@ -138,7 +160,7 @@ app.get('/api/conexiones/usuario/:usuario_id', (req, res) => {
                JOIN usuarios u_sol ON c.solicitante_id = u_sol.usuario_id
                JOIN usuarios u_rec ON c.receptor_id = u_rec.usuario_id
                WHERE c.solicitante_id = ? OR c.receptor_id = ?`;
-  
+
   db.execute(sql, [usuario_id, usuario_id], (err, results) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -152,10 +174,10 @@ app.get('/api/conexiones/usuario/:usuario_id', (req, res) => {
 // Agregar disponibilidad
 app.post('/api/disponibilidades', (req, res) => {
   const { usuario_id, dia, hora_inicio, hora_fin } = req.body;
-  
+
   const sql = `INSERT INTO disponibilidades (usuario_id, dia, hora_inicio, hora_fin) 
                VALUES (?, ?, ?, ?)`;
-  
+
   db.execute(sql, [usuario_id, dia, hora_inicio, hora_fin], (err, result) => {
     if (err) {
       return res.status(400).json({ error: err.message });
@@ -167,7 +189,7 @@ app.post('/api/disponibilidades', (req, res) => {
 // Obtener disponibilidad de un usuario
 app.get('/api/disponibilidades/usuario/:usuario_id', (req, res) => {
   const { usuario_id } = req.params;
-  
+
   const sql = 'SELECT * FROM disponibilidades WHERE usuario_id = ?';
   db.execute(sql, [usuario_id], (err, results) => {
     if (err) {
@@ -180,7 +202,7 @@ app.get('/api/disponibilidades/usuario/:usuario_id', (req, res) => {
 // ==================== RUTA DE PRUEBA ====================
 
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'API de English Connect funcionando!',
     endpoints: {
       usuarios: '/api/usuarios',
@@ -197,7 +219,7 @@ app.get('/', (req, res) => {
 app.get('/api/usuarios/:id', (req, res) => {
   const { id } = req.params;
   const sql = 'SELECT usuario_id, nombres, apellido_paterno, email, nivel_actual, nivel_deseado, rol FROM usuarios WHERE usuario_id = ?';
-  
+
   db.execute(sql, [id], (err, results) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -213,7 +235,7 @@ app.get('/api/usuarios/:id', (req, res) => {
 app.put('/api/conexiones/:id/aceptar', (req, res) => {
   const { id } = req.params;
   const sql = 'UPDATE conexiones SET estado = "ACEPTADA" WHERE conexion_id = ?';
-  
+
   db.execute(sql, [id], (err, result) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -227,7 +249,7 @@ app.put('/api/clases/:id', (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
   const sql = 'UPDATE clases SET estado = ? WHERE clase_id = ?';
-  
+
   db.execute(sql, [estado, id], (err, result) => {
     if (err) {
       return res.status(500).json({ error: err.message });

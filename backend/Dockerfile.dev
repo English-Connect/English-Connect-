@@ -1,0 +1,20 @@
+# Usar imagen de Node.js LTS
+FROM node:20-alpine
+
+# Instalar dependencias del sistema
+RUN apk add --no-cache git
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar archivos de dependencias
+COPY package*.json ./
+
+# Instalar TODAS las dependencias (incluyendo devDependencies)
+RUN npm install
+
+# Exponer el puerto del backend
+EXPOSE 5000
+
+# Comando por defecto (puede ser sobrescrito por docker-compose)
+CMD ["npm", "run", "dev"]
