@@ -254,7 +254,8 @@ env
 # .env.example
 ...
 
-📁 Estructura del Proyecto
+# 📁 Estructura del Proyecto
+```bash
 English-Connect/
 │
 ├── 📂 client/                    # Frontend (React/Angular/Vue)
@@ -407,7 +408,7 @@ English-Connect/
 ├── package.json                 # (si es monorepo)
 ├── docker-compose.yml           # (composición principal)
 └── .env.example
-
+```
 🛠️ Tecnologías
 Lenguaje: ...
 
