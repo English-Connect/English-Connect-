@@ -199,7 +199,6 @@ Backup Automático: Copias de seguridad diarias de toda la información
 node.js v20.19+ or 22.12+
 
 ### Pasos de instalación
-```bash
 # Clonar el repositorio
 git clone https://github.com/English-Connect/English-Connect-.git
 
