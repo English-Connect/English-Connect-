@@ -148,36 +148,32 @@ conectando culturas y creando oportunidades a través de la educación colaborat
 node.js v20.19+ or 22.12+
 
 ### Pasos de instalación
-\`\`\`bash
+
 # Clonar el repositorio
 git clone https://github.com/English-Connect/English-Connect-.git
 
 # Navegar al directorio
 cd /English-Connect-
-\`\`\`
 
 ### Sin contenedores
 Instalar dependencias
 General
-\`\`\`bash
 npm install
-\`\`\`
 
 Especifico(\English-Connect-\frontend)
-\`\`\`bash
 npm install vite --save-dev
 ...
-\`\`\`
+
 
 ## 📖 Uso
 ### Ejecución básica
-\`\`\`bash
+
 # Comando para ejecutar en \English-Connect-\frontend y \English-Connect-\backend
 npm run dev
-\`\`\`
+
 
 ### Ejemplos de uso
-\`\`\`bash
+
 \English-Connect-\frontend>npm run dev
 
 > frontend@0.0.0 dev
@@ -203,16 +199,16 @@ npm run dev
 [nodemon] starting `node server.js`
 [dotenv@17.2.3] injecting env (5) from .env -- tip: ⚙️  enable debug logging with { debug: true }
 Servidor corriendo en puerto 5000
-\`\`\`
+
 
 ## ⚙️ Configuración
-\`\`\`env
+
 # .env.example
 ...
-\`\`\`
+
 
 ## 📁 Estructura del Proyecto
-\`\`\`
+```
 English-Connect/
 │
 ├── 📂 client/                    # Frontend (React/Angular/Vue)
@@ -365,7 +361,7 @@ English-Connect/
 ├── package.json                 # (si es monorepo)
 ├── docker-compose.yml           # (composición principal)
 └── .env.example
-\`\`\`
+```
 
 ## 🛠️ Tecnologías
 - **Lenguaje:** ...
