@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     contrasena VARCHAR(255) NOT NULL,
     nivel_actual ENUM('A1', 'A2', 'B1', 'B2', 'C1', 'C2') DEFAULT 'A1',
     nivel_deseado ENUM('A1', 'A2', 'B1', 'B2', 'C1', 'C2') DEFAULT 'C2',
-    rol ENUM('ALUMNO', 'PROFESOR') NOT NULL DEFAULT 'ALUMNO',
+    rol ENUM('ALUMNO', 'PROFESOR','AMBOS') NOT NULL DEFAULT 'ALUMNO',
     edad INT,
     phone_number VARCHAR(20),
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

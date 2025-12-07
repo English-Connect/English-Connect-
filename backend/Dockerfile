@@ -9,6 +9,7 @@ COPY package*.json ./
 
 # Instalar dependencias
 RUN npm ci --only=production
+RUN npm install -g nodemon
 
 # Copiar el código fuente
 COPY . .

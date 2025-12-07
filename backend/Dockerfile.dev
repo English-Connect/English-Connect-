@@ -13,6 +13,8 @@ COPY package*.json ./
 # Instalar TODAS las dependencias (incluyendo devDependencies)
 RUN npm install
 
+RUN npm install -g nodemon
+
 # Exponer el puerto del backend
 EXPOSE 5000
 
