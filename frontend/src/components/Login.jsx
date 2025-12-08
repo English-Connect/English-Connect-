@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
-    contraseña: ''
+    contrasena: ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -24,10 +24,10 @@ const Login = () => {
 
     try {
       const response = await usuarioService.login(formData);
-      
+
       localStorage.setItem('usuario', JSON.stringify(response.data.usuario));
       localStorage.setItem('token', 'mock-token');
-      
+
       alert('✅ ¡Bienvenido de vuelta!');
       navigate('/dashboard');
     } catch (error) {
@@ -41,7 +41,7 @@ const Login = () => {
     <div className="container">
       <div style={{ maxWidth: '400px', margin: '0 auto' }}>
         <h2 className="text-center mb-20">🔐 Iniciar Sesión</h2>
-        
+
         <form onSubmit={handleSubmit} className="card">
           <div className="form-group">
             <label className="form-label">Email</label>
@@ -60,18 +60,18 @@ const Login = () => {
             <label className="form-label">Contraseña</label>
             <input
               type="password"
-              name="contraseña"
+              name="contrasena"
               placeholder="Tu contraseña"
-              value={formData.contraseña}
+              value={formData.contrasena}
               onChange={handleChange}
               required
               className="form-input"
             />
           </div>
 
-          <button 
-            type="submit" 
-            className="btn btn-primary" 
+          <button
+            type="submit"
+            className="btn btn-primary"
             style={{ width: '100%' }}
             disabled={loading}
           >
