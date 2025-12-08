@@ -391,7 +391,7 @@ Este proyecto está bajo la Licencia ... - ver el archivo LICENSE para más deta
 
 - **Autor:** ERIK MUÑOZ RODRIGUEZ
   - Email: erikmuoz3@gmail.com
-  - GitHub: @
+  - GitHub: @Erik_WR
 
 - **Autor:** Carlos Alberto Martinez Arevalo
   - Email: carlos.martinez@cua.uam.mx
