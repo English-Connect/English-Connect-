@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 require('dotenv').config();
@@ -8,21 +8,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Conexión a MySQL
-// Configuración del pool de conexiones MySQL
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
+// Conexión a MySQL con UTF-8
+const db = mysql.createPool({
+  host: process.env.DB_HOST || 'db',
+  user: process.env.DB_USER || 'english_user',
+  password: process.env.DB_PASSWORD || 'english_password',
   database: process.env.DB_NAME || 'english_connect',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
-});
-
-// Promisify para usar async/await si fuera necesario en el futuro, 
-// aunque aquí usaremos execute directamente que es compatible.
-const db = pool.promise();
+  queueLimit: 0,
+  charset: 'utf8mb4'
+}).promise();
 
 // Función para probar la conexión al inicio con reintentos
 const checkConnection = async (retries = 5, delay = 5000) => {
@@ -39,7 +35,6 @@ const checkConnection = async (retries = 5, delay = 5000) => {
         await new Promise(res => setTimeout(res, delay));
       } else {
         console.error('No se pudo conectar a MySQL después de varios intentos.');
-        // No matamos el proceso, permitimos que siga intentando en cada request
       }
     }
   }
@@ -62,7 +57,7 @@ app.post('/api/usuarios/registro', async (req, res) => {
     return res.status(400).json({ error: 'Faltan campos requeridos: nombres, apellido_paterno, email, contrasena y rol son obligatorios' });
   }
 
-  // Validar campos específicos según el rol
+  // Validar campos espec├¡ficos seg├║n el rol
   if (rol === 'ALUMNO' && (!nivel_actual || !nivel_deseado)) {
     return res.status(400).json({
       error: 'Campos requeridos faltantes',
@@ -84,13 +79,13 @@ app.post('/api/usuarios/registro', async (req, res) => {
     });
   }
 
-  // Validar que profesores tengan nivel mínimo B2
+  // Validar que profesores tengan nivel m├¡nimo B2
   if ((rol === 'PROFESOR' || rol === 'AMBOS') && nivel_actual) {
     const nivelesAvanzados = ['B2', 'C1', 'C2'];
     if (!nivelesAvanzados.includes(nivel_actual)) {
       return res.status(400).json({
         error: 'Nivel insuficiente para profesor',
-        detail: 'Los profesores deben tener un nivel mínimo de B2 (Intermedio Alto). Por favor, selecciona B2, C1 o C2.'
+        detail: 'Los profesores deben tener un nivel m├¡nimo de B2 (Intermedio Alto). Por favor, selecciona B2, C1 o C2.'
       });
     }
   }
@@ -115,12 +110,12 @@ app.post('/api/usuarios/registro', async (req, res) => {
 
     res.json({ message: 'Usuario registrado exitosamente', usuario_id: result.insertId });
   } catch (err) {
-    // Manejar específicamente el error de email duplicado
+    // Manejar espec├¡ficamente el error de email duplicado
     if (err.code === 'ER_DUP_ENTRY') {
       console.log('Error: Email duplicado -', email);
       return res.status(409).json({
-        error: 'El email ya está registrado',
-        detail: 'Ya existe una cuenta con este correo electrónico. Por favor, usa otro email o inicia sesión.'
+        error: 'El email ya est├í registrado',
+        detail: 'Ya existe una cuenta con este correo electr├│nico. Por favor, usa otro email o inicia sesi├│n.'
       });
     }
 
@@ -136,7 +131,7 @@ app.post('/api/usuarios/login', async (req, res) => {
 
   // Validar que lleguen los datos
   if (!email || !contrasena) {
-    return res.status(400).json({ error: 'Email y contraseña son requeridos' });
+    return res.status(400).json({ error: 'Email y contrase├▒a son requeridos' });
   }
 
   try {
@@ -153,7 +148,7 @@ app.post('/api/usuarios/login', async (req, res) => {
     res.json({ message: 'Login exitoso', usuario });
   } catch (err) {
     console.error('Error en login:', err);
-    return res.status(500).json({ error: 'Error al iniciar sesión', detail: err.message });
+    return res.status(500).json({ error: 'Error al iniciar sesi├│n', detail: err.message });
   }
 });
 
@@ -171,36 +166,91 @@ app.get('/api/usuarios', async (req, res) => {
 
 // ==================== RUTAS DE CLASES ====================
 
-// Crear nueva clase
+// Crear nueva clase (privada o pública)
 app.post('/api/clases', async (req, res) => {
-  const { alumno_id, profesor_id, fecha, hora_inicio, hora_fin } = req.body;
+  const {
+    alumno_id, profesor_id, fecha, hora_inicio, hora_fin,
+    tipo, cupo_maximo, titulo, descripcion, nivel_requerido
+  } = req.body;
+
+  // Validar según tipo de clase
+  if (tipo === 'PRIVADA' && !alumno_id) {
+    return res.status(400).json({
+      error: 'Las clases privadas requieren alumno_id'
+    });
+  }
+
+  if (tipo === 'PUBLICA' && (!titulo || !cupo_maximo)) {
+    return res.status(400).json({
+      error: 'Las clases públicas requieren título y cupo máximo'
+    });
+  }
 
   try {
-    const sql = `INSERT INTO clases (alumno_id, profesor_id, fecha, hora_inicio, hora_fin) 
-                 VALUES (?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO clases 
+      (alumno_id, profesor_id, fecha, hora_inicio, hora_fin, tipo, cupo_maximo, cupo_actual, titulo, descripcion, nivel_requerido, estado) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    const [result] = await db.execute(sql, [alumno_id, profesor_id, fecha, hora_inicio, hora_fin]);
-    res.json({ message: 'Clase creada exitosamente', clase_id: result.insertId });
+    const [result] = await db.execute(sql, [
+      alumno_id || null,
+      profesor_id,
+      fecha,
+      hora_inicio,
+      hora_fin,
+      tipo || 'PRIVADA',
+      cupo_maximo || 1,
+      0, // cupo_actual inicial
+      titulo || null,
+      descripcion || null,
+      nivel_requerido || null,
+      'PROGRAMADA' // estado inicial
+    ]);
+
+    res.json({
+      message: tipo === 'PUBLICA' ? 'Clase publicada exitosamente' : 'Clase creada exitosamente',
+      clase_id: result.insertId
+    });
   } catch (err) {
     console.error('Error creando clase:', err);
     return res.status(500).json({ error: 'Error al crear clase', detail: err.message });
   }
 });
 
-// Obtener clases de un usuario
+// Obtener clases de un usuario (privadas y públicas inscritas)
 app.get('/api/clases/usuario/:usuario_id', async (req, res) => {
   const { usuario_id } = req.params;
 
   try {
-    const sql = `SELECT c.*, 
-                 u_prof.nombres as profesor_nombre, 
-                 u_alum.nombres as alumno_nombre
-                 FROM clases c
-                 JOIN usuarios u_prof ON c.profesor_id = u_prof.usuario_id
-                 JOIN usuarios u_alum ON c.alumno_id = u_alum.usuario_id
-                 WHERE c.alumno_id = ? OR c.profesor_id = ?`;
+    // Usar UNION para combinar clases privadas, clases como profesor, y clases públicas inscritas
+    const sql = `
+      SELECT c.*, 
+             u_prof.nombres as profesor_nombre, 
+             u_alum.nombres as alumno_nombre,
+             NULL as inscripcion_id,
+             NULL as inscripcion_estado,
+             'PRIVADA' as origen
+      FROM clases c
+      JOIN usuarios u_prof ON c.profesor_id = u_prof.usuario_id
+      LEFT JOIN usuarios u_alum ON c.alumno_id = u_alum.usuario_id
+      WHERE c.alumno_id = ? OR c.profesor_id = ?
+      
+      UNION
+      
+      SELECT c.*, 
+             u_prof.nombres as profesor_nombre, 
+             NULL as alumno_nombre,
+             i.inscripcion_id,
+             i.estado as inscripcion_estado,
+             'INSCRITA' as origen
+      FROM clases c
+      JOIN usuarios u_prof ON c.profesor_id = u_prof.usuario_id
+      JOIN inscripciones i ON c.clase_id = i.clase_id
+      WHERE i.alumno_id = ? AND i.estado = 'CONFIRMADA'
+      
+      ORDER BY fecha DESC, hora_inicio DESC
+    `;
 
-    const [results] = await db.execute(sql, [usuario_id, usuario_id]);
+    const [results] = await db.execute(sql, [usuario_id, usuario_id, usuario_id]);
     res.json(results);
   } catch (err) {
     console.error('Error obteniendo clases de usuario:', err);
@@ -208,9 +258,175 @@ app.get('/api/clases/usuario/:usuario_id', async (req, res) => {
   }
 });
 
+// ==================== RUTAS DE MARKETPLACE ====================
+
+// Listar clases públicas disponibles
+app.get('/api/clases/disponibles', async (req, res) => {
+  const { nivel, fecha, profesor_id } = req.query;
+
+  try {
+    let sql = `SELECT c.*, 
+                u.nombres as profesor_nombre, 
+                u.apellido_paterno as profesor_apellido,
+                u.nivel_actual as profesor_nivel,
+                (c.cupo_maximo - c.cupo_actual) as cupos_disponibles
+               FROM clases c
+               JOIN usuarios u ON c.profesor_id = u.usuario_id
+               WHERE c.tipo = 'PUBLICA' 
+                 AND c.estado = 'PROGRAMADA'
+                 AND c.fecha >= CURDATE()
+                 AND c.cupo_actual < c.cupo_maximo`;
+
+    const params = [];
+
+    if (nivel) {
+      sql += ' AND c.nivel_requerido = ?';
+      params.push(nivel);
+    }
+
+    if (fecha) {
+      sql += ' AND c.fecha = ?';
+      params.push(fecha);
+    }
+
+    if (profesor_id) {
+      sql += ' AND c.profesor_id = ?';
+      params.push(profesor_id);
+    }
+
+    sql += ' ORDER BY c.fecha ASC, c.hora_inicio ASC';
+
+    const [results] = await db.execute(sql, params);
+    res.json(results);
+  } catch (err) {
+    console.error('Error obteniendo clases disponibles:', err);
+    return res.status(500).json({ error: 'Error al obtener clases disponibles', detail: err.message });
+  }
+});
+
+// Inscribirse en una clase pública
+app.post('/api/clases/:clase_id/inscribirse', async (req, res) => {
+  const { clase_id } = req.params;
+  const { alumno_id } = req.body;
+
+  try {
+    // Verificar que la clase existe y es pública
+    const [clases] = await db.execute(
+      'SELECT * FROM clases WHERE clase_id = ? AND tipo = \'PUBLICA\'',
+      [clase_id]
+    );
+
+    if (clases.length === 0) {
+      return res.status(404).json({ error: 'Clase no encontrada o no es pública' });
+    }
+
+    const clase = clases[0];
+
+    // Verificar cupos disponibles
+    if (clase.cupo_actual >= clase.cupo_maximo) {
+      return res.status(400).json({ error: 'No hay cupos disponibles' });
+    }
+
+    // Insertar inscripción
+    await db.execute(
+      'INSERT INTO inscripciones (clase_id, alumno_id, estado, fecha_inscripcion) VALUES (?, ?, ?, NOW())',
+      [clase_id, alumno_id, 'CONFIRMADA']
+    );
+
+    // Incrementar cupo actual
+    await db.execute(
+      'UPDATE clases SET cupo_actual = cupo_actual + 1 WHERE clase_id = ?',
+      [clase_id]
+    );
+
+    res.json({ message: 'Inscripción exitosa' });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Ya estás inscrito en esta clase' });
+    }
+    console.error('Error en inscripción:', err);
+    return res.status(500).json({ error: 'Error al inscribirse', detail: err.message });
+  }
+});
+
+// Ver inscritos en una clase
+app.get('/api/clases/:clase_id/inscritos', async (req, res) => {
+  const { clase_id } = req.params;
+
+  try {
+    const sql = `SELECT u.nombres, u.apellido_paterno, u.apellido_materno, 
+                        u.email, u.nivel_actual, i.fecha_inscripcion
+                 FROM inscripciones i
+                 JOIN usuarios u ON i.alumno_id = u.usuario_id
+                 WHERE i.clase_id = ? AND i.estado = 'CONFIRMADA'
+                 ORDER BY i.fecha_inscripcion ASC`;
+
+    const [results] = await db.execute(sql, [clase_id]);
+    res.json(results);
+  } catch (err) {
+    console.error('Error obteniendo inscritos:', err);
+    return res.status(500).json({ error: 'Error al obtener inscritos', detail: err.message });
+  }
+});
+
+// Cancelar inscripción
+app.delete('/api/inscripciones/:inscripcion_id', async (req, res) => {
+  const { inscripcion_id } = req.params;
+
+  try {
+    // Obtener datos de la inscripción
+    const [inscripciones] = await db.execute(
+      'SELECT clase_id FROM inscripciones WHERE inscripcion_id = ?',
+      [inscripcion_id]
+    );
+
+    if (inscripciones.length === 0) {
+      return res.status(404).json({ error: 'Inscripción no encontrada' });
+    }
+
+    const clase_id = inscripciones[0].clase_id;
+
+    // Marcar como cancelada
+    await db.execute(
+      'UPDATE inscripciones SET estado = \'CANCELADA\', fecha_cancelacion = NOW() WHERE inscripcion_id = ?',
+      [inscripcion_id]
+    );
+
+    // Decrementar cupo actual
+    await db.execute(
+      'UPDATE clases SET cupo_actual = cupo_actual - 1 WHERE clase_id = ?',
+      [clase_id]
+    );
+
+    res.json({ message: 'Inscripción cancelada exitosamente' });
+  } catch (err) {
+    console.error('Error cancelando inscripción:', err);
+    return res.status(500).json({ error: 'Error al cancelar inscripción', detail: err.message });
+  }
+});
+
+// Obtener clases públicas de un profesor
+app.get('/api/profesores/:profesor_id/clases-publicas', async (req, res) => {
+  const { profesor_id } = req.params;
+
+  try {
+    const sql = `SELECT *, 
+                        (cupo_maximo - cupo_actual) as cupos_disponibles
+                 FROM clases 
+                 WHERE profesor_id = ? AND tipo = 'PUBLICA'
+                 ORDER BY fecha DESC`;
+
+    const [results] = await db.execute(sql, [profesor_id]);
+    res.json(results);
+  } catch (err) {
+    console.error('Error obteniendo clases públicas del profesor:', err);
+    return res.status(500).json({ error: 'Error al obtener clases públicas', detail: err.message });
+  }
+});
+
 // ==================== RUTAS DE CONEXIONES ====================
 
-// Enviar solicitud de conexión
+// Enviar solicitud de conexi├│n
 app.post('/api/conexiones', async (req, res) => {
   const { solicitante_id, receptor_id, nivel_solicitado } = req.body;
 
@@ -219,10 +435,10 @@ app.post('/api/conexiones', async (req, res) => {
                  VALUES (?, ?, ?)`;
 
     const [result] = await db.execute(sql, [solicitante_id, receptor_id, nivel_solicitado]);
-    res.json({ message: 'Solicitud de conexión enviada', conexion_id: result.insertId });
+    res.json({ message: 'Solicitud de conexi├│n enviada', conexion_id: result.insertId });
   } catch (err) {
-    console.error('Error enviando solicitud de conexión:', err);
-    return res.status(500).json({ error: 'Error al enviar solicitud de conexión', detail: err.message });
+    console.error('Error enviando solicitud de conexi├│n:', err);
+    return res.status(500).json({ error: 'Error al enviar solicitud de conexi├│n', detail: err.message });
   }
 });
 
@@ -293,7 +509,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Agregar después de las rutas existentes
+// Agregar despu├®s de las rutas existentes
 
 // Obtener usuario por ID
 app.get('/api/usuarios/:id', async (req, res) => {
@@ -313,17 +529,17 @@ app.get('/api/usuarios/:id', async (req, res) => {
   }
 });
 
-// Aceptar conexión
+// Aceptar conexi├│n
 app.put('/api/conexiones/:id/aceptar', async (req, res) => {
   const { id } = req.params;
 
   try {
     const sql = 'UPDATE conexiones SET estado = "ACEPTADA" WHERE conexion_id = ?';
     await db.execute(sql, [id]);
-    res.json({ message: 'Conexión aceptada' });
+    res.json({ message: 'Conexi├│n aceptada' });
   } catch (err) {
-    console.error('Error aceptando conexión:', err);
-    return res.status(500).json({ error: 'Error al aceptar conexión', detail: err.message });
+    console.error('Error aceptando conexi├│n:', err);
+    return res.status(500).json({ error: 'Error al aceptar conexi├│n', detail: err.message });
   }
 });
 
